@@ -1,0 +1,22 @@
+# 探盘前端静态站点示例。把 root 指到 npm run build 产出的 dist。
+# /api 与 /health 反代到后端；其余路径回退到 index.html，供前端路由使用。
+
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/tandisc/web/dist;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    location = /health {
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
