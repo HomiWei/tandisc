@@ -92,18 +92,19 @@ Base path 为 `/api/v1`。前端会发送：
 
 契约没有给出 `GET /api/v1/meta` 与 `GET /api/v1/github/repos/{id}` 的完整示例：
 
-- meta 读取 `categories`（字符串，或带 `value` 的对象）以及 `github_period` 或 `period`。类目中文是前端标签，不改 API 值。meta 失败时，筛选项回退到契约中的九个类目枚举，不编造产品。
+- meta 读取 `categories`（字符串，或带 `value` 的对象）。当前月榜口径以官方字段 `github_period` 为准，结构与月榜 `period` 相同。只有响应里没有 `github_period` 这个键时，才暂时读取 `github_ranking_period`，再没有则读 `period`。这是过渡兼容：后端按契约写出 `github_period` 之后，以该字段为准。类目中文是前端标签，不改 API 值。meta 失败时，筛选项回退到契约中的九个类目枚举，不编造产品。
+- 产品详情的 `pricing.source` 按契约是 `{name, url, accessed_at}` 或 `null`。对象仍按这三个字段解析。若当前接口仍返回 URL 字符串，暂时当成 `{url, name: null, accessed_at: null}` 显示，避免整页变成「服务返回的数据无法识别。」。后端按契约改为对象后，字符串兼容可以去掉。
 - 仓库详情展示 `id`、`full_name`、`html_url`、`tagline_zh`、`product_id`。若响应里带有契约已出现的指标字段（如 `stars_start`、`stars_end`、`net_gain`、`stars_total`、`stars`、`rank`、`snapshot_date`、`captured_at`、`computed_at`、`data_as_of`、`year_month`），按原字段显示；没有这些字段时，「关键指标」为「暂无」。
 
-GitHub 榜页始终展示 `period.methodology_zh`。`is_fallback_previous_month` 为 true 时，另展示 `period.label_zh`（一般为「上一完整月」）。`fallback_reason` 不直接显示，避免把英文原因码丢给用户。
+GitHub 榜页始终展示 `period.methodology_zh`。只要接口带回 `label_zh`，首页「当前月榜口径」和榜页都会显示，包括「本月至今」、空榜和回退月。`is_fallback_previous_month` 为 true 时仍用 `github-fallback-label`（一般为「上一完整月」，缺省为「暂无」）；该标志为 false 且 `label_zh` 有值时用 `github-period-label`。`fallback_reason` 不直接显示，避免把英文原因码丢给用户。`empty_reason_zh`、`note_zh` 不展示。
 
 ## 给测试：主流程
 
-1. 打开 `/`。确认两个入口分开，文案不把涨星写成收入。
+1. 打开 `/`。确认两个入口分开，文案不把涨星写成收入。首页「当前月榜口径」展示自然月、`label_zh` 和口径；接口给出「本月至今」时页面上能看到这四个字。
 2. 进入 `/products`。用名称搜索、类目和排序（收录顺序 / 名称）。列表只有名称、中文一句话、类目。
 3. 让产品接口返回 `items: []`。应看到「暂无收录」，而不是错误条。
 4. 进入 `/products/:id`。定价说明可在数值为空时仍显示，数值为「暂无」。指标缺 `value` 或缺来源时，该栏保留并显示「暂无」。
-5. 进入 `/github`。页面有统计周期和口径。回退月时能看到「上一完整月」这类 `label_zh`。
+5. 进入 `/github`。页面有统计周期和口径。`label_zh` 有值就显示，例如「本月至今」，回退月时则为「上一完整月」。
 6. 月榜 `items` 为空时看到「暂无月榜」，不出现编造的净增。
 7. 在产品或仓库详情提交追问，分别核对已回答、资料不足、超出范围，以及 503 的中文说明。
 8. 后端未启动时，页面仍能打开，并在请求结束后显示中文错态，不出现样例产品或样例星数。
@@ -133,7 +134,8 @@ GitHub 榜页始终展示 `period.methodology_zh`。`is_fallback_previous_month`
 | `github-month-form` | 月份表单 |
 | `github-period` | 统计周期 |
 | `github-methodology` | `period.methodology_zh` |
-| `github-fallback-label` | 仅当 `is_fallback_previous_month` 为 true 时出现，内容为 `label_zh` |
+| `github-period-label` | `label_zh` 有值且 `is_fallback_previous_month` 为 false 时出现（如「本月至今」）。首页月榜口径与 GitHub 榜页都有 |
+| `github-fallback-label` | 仅当 `is_fallback_previous_month` 为 true 时出现，内容为 `label_zh`（没有则「暂无」）。首页月榜口径与 GitHub 榜页都有 |
 | `github-row` | 月榜一行 |
 | `repo-detail` | 仓库详情 |
 | `ask-form` | 追问表单 |

@@ -51,6 +51,12 @@ function intOr(value: unknown, fallback: number): number {
 
 function parseSource(value: unknown): SourceRef | null {
   if (value == null) return null;
+  // Temporary: staging still sends a bare URL. Official contract is the object or null.
+  if (typeof value === "string") {
+    const url = textOrNull(value);
+    if (!url) return null;
+    return { name: null, url, accessed_at: null };
+  }
   if (!isRecord(value)) fail();
   const source: SourceRef = {
     name: textOrNull(value.name),
@@ -197,12 +203,20 @@ function parseCategoryList(value: unknown): string[] | null {
   return categories;
 }
 
+function presentField(record: Record<string, unknown>, keys: string[]): unknown {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(record, key)) return record[key];
+  }
+  return null;
+}
+
 export function parseMeta(value: unknown): Meta {
   if (!isRecord(value)) {
     return { categories: [...CATEGORY_VALUES], period: null };
   }
   const categories = parseCategoryList(value.categories);
-  const period = parsePeriod(value.github_period ?? value.period);
+  // Official key is github_period. Older staging keys are used only when it is absent.
+  const period = parsePeriod(presentField(value, ["github_period", "github_ranking_period", "period"]));
   return {
     categories: categories && categories.length > 0 ? categories : [...CATEGORY_VALUES],
     period,

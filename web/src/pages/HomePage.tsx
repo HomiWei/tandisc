@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchMeta } from "../api/client";
 import { isAbortError, toUserMessage } from "../api/errors";
 import type { GithubPeriod } from "../api/types";
+import { PeriodLabel } from "../components/PeriodPanel";
 import { ErrorBanner, LoadingState, Unavailable } from "../components/States";
 import { usePageTitle } from "../lib/usePageTitle";
 
@@ -51,9 +52,7 @@ export function HomePage() {
         {status === "ready" && period ? (
           <div className="home-period">
             <p>自然月 {period.year_month ?? <Unavailable />}</p>
-            {period.is_fallback_previous_month ? (
-              <p className="fallback">{period.label_zh ?? <Unavailable />}</p>
-            ) : null}
+            <PeriodLabel period={period} />
             <p>{period.methodology_zh ?? <Unavailable />}</p>
           </div>
         ) : null}
