@@ -115,12 +115,13 @@ JSON，UTF-8。日期 `YYYY-MM-DD`，月份 `YYYY-MM`。错误体：
 
 | 字段 | 含义 |
 | --- | --- |
-| `month` | `YYYY-MM` |
+| `year_month` | `YYYY-MM` |
 | `timezone` | 默认 `Asia/Shanghai` |
 | `label_zh` | 回退时固定为「上一完整月」；本月至今为「本月至今」；指定的已结束月份为「完整月」 |
 | `is_fallback_previous_month` | 是否因为月初 1–7 日而改看上一完整月。8 日及以后即使没有快照也不回退 |
+| `fallback_reason` | 回退时为 `current_month_snapshots_incomplete`，否则 `null` |
 | `data_as_of` | 参与计算的最新快照日；没有则为 `null` |
-| `range_start` / `range_end` | 这个周期的日历范围 |
+| `start_date` / `end_date` | 这个周期的日历范围 |
 | `methodology_zh` | 「净增 = 月末快照 star 减月初快照 star；时区 Asia/Shanghai；数据来自 GitHub 公开接口与我方快照。」 |
 | `empty_reason_zh` | `items` 为空时的原因，有数据则为 `null` |
 | `note_zh` | 为什么选了这个月 |
@@ -136,7 +137,7 @@ JSON，UTF-8。日期 `YYYY-MM-DD`，月份 `YYYY-MM`。错误体：
 - 当月 8 日至月末：始终展示本月，`is_fallback_previous_month=false`，`label_zh` 为「本月至今」。没有快照时 `items` 为空，不回退到上一月。有快照时净增 = 最新快照 star 减月初快照，`data_as_of` 为最新快照日期
 - 显式传入 `month` 时只计算该月，不自动改到别的月份。未来月份返回 400
 
-这个新服务还没有历史快照。以 Asia/Shanghai 的 2026-11-16 为例，默认请求得到 `items: []`，`period.month` 为 `2026-11`，`label_zh` 为「本月至今」，`is_fallback_previous_month` 为 false，并带上 `empty_reason_zh`。不会编造 `net_gain`。
+这个新服务还没有历史快照。以 Asia/Shanghai 的 2026-11-16 为例，默认请求得到 `items: []`，`period.year_month` 为 `2026-11`，`start_date` 为 `2026-11-01`，`end_date` 为 `2026-11-16`，`label_zh` 为「本月至今」，`is_fallback_previous_month` 为 false，`fallback_reason` 为 null，并带上 `empty_reason_zh`。不会编造 `net_gain`。
 
 `app/services/snapshots.py` 是每日快照任务的空实现。调用它才读取 token；不配置 `GITHUB_TOKEN` 不影响启动。
 

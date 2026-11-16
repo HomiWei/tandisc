@@ -22,6 +22,7 @@ METHODOLOGY_ZH = "净增 = 月末快照 star 减月初快照 star；时区 Asia/
 FALLBACK_LABEL_ZH = "上一完整月"
 PARTIAL_LABEL_ZH = "本月至今"
 COMPLETE_LABEL_ZH = "完整月"
+FALLBACK_REASON_INCOMPLETE = "current_month_snapshots_incomplete"
 
 INSUFFICIENT_ANSWER = "当前档案没有这项数据"
 OUT_OF_SCOPE_ANSWER = "这个问题超出了产品档案问答的范围。"

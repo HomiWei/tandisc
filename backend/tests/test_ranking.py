@@ -56,6 +56,14 @@ def test_no_snapshots_on_nov_16_uses_current_month(monkeypatch):
     assert period.range_start == date(2026, 11, 1)
     assert period.range_end == date(2026, 11, 16)
     assert period.timezone == "Asia/Shanghai"
+    assert period.fallback_reason is None
+    dumped = period.model_dump(by_alias=True)
+    assert dumped["year_month"] == "2026-11"
+    assert dumped["start_date"] == date(2026, 11, 1)
+    assert dumped["end_date"] == date(2026, 11, 16)
+    assert "month" not in dumped
+    assert "range_start" not in dumped
+    assert "range_end" not in dumped
 
 
 def test_days_1_to_7_with_no_snapshots_use_previous_month(monkeypatch):
@@ -70,6 +78,7 @@ def test_days_1_to_7_with_no_snapshots_use_previous_month(monkeypatch):
     assert period.data_as_of is None
     assert period.range_start == date(2026, 10, 1)
     assert period.range_end == date(2026, 10, 31)
+    assert period.fallback_reason == "current_month_snapshots_incomplete"
 
 
 def test_days_1_to_7_use_previous_month_even_when_current_has_snapshots(monkeypatch):
@@ -86,6 +95,7 @@ def test_days_1_to_7_use_previous_month_even_when_current_has_snapshots(monkeypa
     )
     assert period.month == "2026-10"
     assert period.is_fallback_previous_month is True
+    assert period.fallback_reason == "current_month_snapshots_incomplete"
     assert len(items) == 1
     assert items[0].net_gain == 30
     assert items[0].stars_start == 10
@@ -128,6 +138,7 @@ def test_day_8_without_current_snapshots_stays_on_current_month(monkeypatch):
     assert items == []
     assert period.month == "2026-11"
     assert period.is_fallback_previous_month is False
+    assert period.fallback_reason is None
     assert period.label_zh == PARTIAL_LABEL_ZH
     assert period.data_as_of is None
 

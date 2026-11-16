@@ -3,9 +3,9 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-from app.domain import Category
+from app.domain import FALLBACK_REASON_INCOMPLETE, Category
 
 
 class ErrorDetail(BaseModel):
@@ -67,16 +67,27 @@ class ProductPage(BaseModel):
 
 
 class RankingPeriod(BaseModel):
-    month: str
+    """Public JSON uses the contract names. Python attributes keep the older names."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    month: str = Field(alias="year_month")
     timezone: str
     label_zh: str
     is_fallback_previous_month: bool
     data_as_of: date | None = None
-    range_start: date
-    range_end: date
+    range_start: date = Field(alias="start_date")
+    range_end: date = Field(alias="end_date")
     methodology_zh: str
     empty_reason_zh: str | None = None
     note_zh: str
+
+    @computed_field
+    @property
+    def fallback_reason(self) -> str | None:
+        if self.is_fallback_previous_month:
+            return FALLBACK_REASON_INCOMPLETE
+        return None
 
 
 class MetaResponse(BaseModel):

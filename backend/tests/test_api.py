@@ -10,13 +10,14 @@ from app.seed import seed_products
 LIST_KEYS = {"id", "name", "tagline_zh", "category", "official_url", "github_repo_id"}
 DETAIL_KEYS = LIST_KEYS | {"overview_zh", "data_as_of", "pricing", "metrics", "github_full_name"}
 PERIOD_KEYS = {
-    "month",
+    "year_month",
     "timezone",
     "label_zh",
     "is_fallback_previous_month",
+    "fallback_reason",
     "data_as_of",
-    "range_start",
-    "range_end",
+    "start_date",
+    "end_date",
     "methodology_zh",
     "empty_reason_zh",
     "note_zh",
@@ -131,13 +132,14 @@ def test_monthly_rankings_empty_period_and_meta(client):
     assert body["total"] == 0
     period = body["period"]
     assert set(period) == PERIOD_KEYS
-    assert period["month"] == "2026-11"
+    assert period["year_month"] == "2026-11"
     assert period["is_fallback_previous_month"] is False
+    assert period["fallback_reason"] is None
     assert period["label_zh"] == "本月至今"
     assert period["methodology_zh"] == METHODOLOGY_ZH
     assert period["data_as_of"] is None
-    assert period["range_start"] == "2026-11-01"
-    assert period["range_end"] == "2026-11-16"
+    assert period["start_date"] == "2026-11-01"
+    assert period["end_date"] == "2026-11-16"
     assert period["empty_reason_zh"]
     assert period["timezone"] == "Asia/Shanghai"
     assert "revenue" not in response.content.decode("utf-8")
@@ -146,9 +148,11 @@ def test_monthly_rankings_empty_period_and_meta(client):
     assert meta.status_code == 200
     assert meta.json()["categories"] == CATEGORIES
     meta_period = meta.json()["github_ranking_period"]
-    assert meta_period["month"] == "2026-11"
+    assert set(meta_period) == PERIOD_KEYS
+    assert meta_period["year_month"] == "2026-11"
     assert meta_period["label_zh"] == "本月至今"
     assert meta_period["is_fallback_previous_month"] is False
+    assert meta_period["fallback_reason"] is None
 
     future = client.get("/api/v1/github/monthly-rankings", params={"month": "2026-13"})
     assert future.status_code == 400
@@ -167,9 +171,12 @@ def test_monthly_rankings_days_1_to_7_use_previous_month(client, monkeypatch):
     body = client.get("/api/v1/github/monthly-rankings").json()
     assert body["items"] == []
     period = body["period"]
-    assert period["month"] == "2026-10"
+    assert period["year_month"] == "2026-10"
+    assert period["start_date"] == "2026-10-01"
+    assert period["end_date"] == "2026-10-31"
     assert period["label_zh"] == "上一完整月"
     assert period["is_fallback_previous_month"] is True
+    assert period["fallback_reason"] == "current_month_snapshots_incomplete"
 
 
 def test_rankings_roundtrip_snapshots_without_inventing_gain(client):
@@ -204,8 +211,9 @@ def test_rankings_roundtrip_snapshots_without_inventing_gain(client):
         session.commit()
 
     rankings = client.get("/api/v1/github/monthly-rankings").json()
-    assert rankings["period"]["month"] == "2026-11"
+    assert rankings["period"]["year_month"] == "2026-11"
     assert rankings["period"]["is_fallback_previous_month"] is False
+    assert rankings["period"]["fallback_reason"] is None
     assert rankings["period"]["data_as_of"] == "2026-11-16"
     assert rankings["total"] == 1
     item = rankings["items"][0]
