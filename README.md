@@ -1,11 +1,12 @@
-# 探盘 (tandisc)
+# tandisc
 
-探盘的 monorepo。当前只有后端 P0 骨架，前端目录留给下一位同学。
+探盘单体仓库。
 
-## 目录
+- `web/`：前端（Vite + React + TypeScript）。安装、开发、构建、预览、SPA 回退与 `data-testid` 见 [`web/README.md`](web/README.md)。
+- `backend/`：FastAPI 服务。本地运行、健康检查、Docker 与测试见下文；环境变量、迁移和接口见 [`backend/README.md`](backend/README.md)。
+- 仓库根目录留给后端和部署文件。前端业务代码只放在 `web/`。
 
-- `backend/` — FastAPI 服务（产品列表、详情、GitHub 月度榜、档案问答）
-- `frontend/` — 预留给前端应用，本仓库还没有前端代码
+密钥不要写入仓库。前端公开变量只使用 `VITE_` 前缀。后端密钥只放在环境变量或未提交的 `.env` 里，变量名见 [`backend/.env.example`](backend/.env.example)。
 
 ## 本地启动后端
 
@@ -21,8 +22,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080
 
 健康检查：`GET http://127.0.0.1:8080/health`，返回 `{"status":"ok"}`。
 
-更完整的环境变量、迁移和接口说明见 [backend/README.md](backend/README.md)。
-
 ## Docker
 
 镜像监听 `8080`，健康检查是容器内的 `GET /health`。
@@ -32,7 +31,7 @@ docker build -t tandisc-backend backend
 docker run --rm -p 8080:8080 tandisc-backend
 ```
 
-需要 Postgres 或模型配置时，用环境变量传入，不要把填好的 `.env` 放进镜像或提交到仓库。变量名见 `backend/.env.example`。
+需要 Postgres 或模型配置时，用环境变量传入，不要把填好的 `.env` 放进镜像或提交到仓库。
 
 ```bash
 docker run --rm -p 8080:8080 \
