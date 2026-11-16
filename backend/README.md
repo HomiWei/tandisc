@@ -81,7 +81,7 @@ JSON，UTF-8。日期 `YYYY-MM-DD`，月份 `YYYY-MM`。错误体：
 
 ### `GET /api/v1/meta`
 
-分类枚举，以及当前默认的 GitHub 榜周期对象（字段同下面的 `period`）。
+分类枚举，以及当前默认的 GitHub 榜周期。响应字段是 `categories` 和 `github_period`。`github_period` 与月榜响应里的 `period` 是同一个对象（`year_month`、`start_date`、`end_date`、`label_zh`、`is_fallback_previous_month`、`fallback_reason` 等）。
 
 分类：`developer_tools`、`productivity`、`ai`、`infra`、`design`、`payment`、`analytics`、`communication`、`other`。
 
@@ -99,7 +99,7 @@ JSON，UTF-8。日期 `YYYY-MM-DD`，月份 `YYYY-MM`。错误体：
 
 详情字段：`id`、`name`、`tagline_zh`、`overview_zh`、`category`、`official_url`、`data_as_of`、`pricing`、`metrics`、`github_repo_id`、`github_full_name`。不存在时 404 `NOT_FOUND`。
 
-`pricing` 形如 `{value, unit, summary_zh, source}`。种子数据的金额未核对，所以 `value` 和 `unit` 为 `null`，`source` 是官方定价页或 plans 页。`summary_zh` 只说明以官方页面为准，不写具体价格。`metrics` 目前是空数组。`data_as_of` 是官方 URL 核对日期（`2026-11-16`），不是经营数据的截止日期。
+`pricing` 形如 `{value, unit, summary_zh, source}`。`source` 是 `{name, url, accessed_at}`，或在没有可用链接时为 `null`。种子数据的金额未核对，所以 `value` 和 `unit` 为 `null`；已保存的官方定价页 URL 会包成 `source`，`name` 为「官网定价页」，`accessed_at` 用该产品的 `data_as_of`。存的不是 http(s) URL 时，不编造链接，`value`、`unit` 和 `source` 都是 `null`。`summary_zh` 只说明以官方页面为准，不写具体价格。`metrics` 每项的 `source` 用同一个对象：有可用 URL 才给出，否则该项的 `value` 和 `source` 为 `null`。种子数据的 `metrics` 目前是空数组。`data_as_of` 是官方 URL 核对日期（`2026-11-16`），不是经营数据的截止日期。
 
 产品 id 前缀 `prd_`。`github_repo_id` 在确认官方公开仓库之前保持 `null`。
 

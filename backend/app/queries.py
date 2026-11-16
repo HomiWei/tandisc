@@ -68,8 +68,11 @@ def product_record(product: Product, github_full_name: str | None) -> dict:
         "category": product.category,
         "official_url": product.official_url,
         "data_as_of": product.data_as_of.isoformat(),
-        "pricing": pricing.model_dump(),
-        "metrics": [metric.model_dump() for metric in metrics_from(product.metrics)],
+        "pricing": pricing.model_dump(mode="json"),
+        "metrics": [
+            metric.model_dump(mode="json")
+            for metric in metrics_from(product.metrics, data_as_of=product.data_as_of)
+        ],
         "github_repo_id": product.github_repo_id,
         "github_full_name": github_full_name,
     }

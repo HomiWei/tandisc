@@ -63,7 +63,7 @@ def health() -> HealthResponse:
 @router.get("/api/v1/meta", response_model=MetaResponse)
 def meta(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)) -> MetaResponse:
     period, _items = _rankings(session, settings, month=None)
-    return MetaResponse(categories=list(CATEGORIES), github_ranking_period=period)
+    return MetaResponse(categories=list(CATEGORIES), github_period=period)
 
 
 @router.get("/api/v1/products", response_model=ProductPage)
