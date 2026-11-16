@@ -6,6 +6,22 @@ function TextOrUnavailable({ value }: { value: string | null }) {
   return <>{value}</>;
 }
 
+export function PeriodLabel({ period }: { period: GithubPeriod }) {
+  if (period.is_fallback_previous_month) {
+    return (
+      <p className="fallback" data-testid="github-fallback-label">
+        {period.label_zh ?? <Unavailable />}
+      </p>
+    );
+  }
+  if (!period.label_zh) return null;
+  return (
+    <p className="period-label" data-testid="github-period-label">
+      {period.label_zh}
+    </p>
+  );
+}
+
 export function PeriodPanel({ period }: { period: GithubPeriod }) {
   return (
     <section className="period" data-testid="github-period">
@@ -30,11 +46,7 @@ export function PeriodPanel({ period }: { period: GithubPeriod }) {
           <TextOrUnavailable value={period.data_as_of} />
         </dd>
       </dl>
-      {period.is_fallback_previous_month ? (
-        <p className="fallback" data-testid="github-fallback-label">
-          {period.label_zh ?? <Unavailable />}
-        </p>
-      ) : null}
+      <PeriodLabel period={period} />
       <p className="methodology" data-testid="github-methodology">
         {period.methodology_zh ?? <Unavailable />}
       </p>
