@@ -21,11 +21,19 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
 
 
+class Source(BaseModel):
+    """Where a published number or pricing page was read. Absent sources are null, not a string."""
+
+    name: str | None = None
+    url: str
+    accessed_at: date | None = None
+
+
 class Pricing(BaseModel):
     value: float | None = None
     unit: str | None = None
     summary_zh: str | None = None
-    source: str | None = None
+    source: Source | None = None
 
 
 class Metric(BaseModel):
@@ -33,7 +41,7 @@ class Metric(BaseModel):
     label_zh: str
     value: float | None = None
     unit: str | None = None
-    source: str | None = None
+    source: Source | None = None
 
 
 class ProductListItem(BaseModel):
@@ -92,7 +100,7 @@ class RankingPeriod(BaseModel):
 
 class MetaResponse(BaseModel):
     categories: list[Category]
-    github_ranking_period: RankingPeriod
+    github_period: RankingPeriod
 
 
 class RankingItem(BaseModel):

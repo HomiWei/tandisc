@@ -109,7 +109,12 @@ def test_product_detail_and_missing(client):
     assert body["data_as_of"] == URLS_VERIFIED_ON.isoformat()
     assert body["pricing"]["value"] is None
     assert body["pricing"]["unit"] is None
-    assert body["pricing"]["source"] == "https://linear.app/pricing"
+    assert body["pricing"]["source"] == {
+        "name": "官网定价页",
+        "url": "https://linear.app/pricing",
+        "accessed_at": URLS_VERIFIED_ON.isoformat(),
+    }
+    assert isinstance(body["pricing"]["source"], dict)
     assert body["pricing"]["summary_zh"]
     assert body["metrics"] == []
     assert body["github_full_name"] is None
@@ -146,8 +151,12 @@ def test_monthly_rankings_empty_period_and_meta(client):
 
     meta = client.get("/api/v1/meta")
     assert meta.status_code == 200
-    assert meta.json()["categories"] == CATEGORIES
-    meta_period = meta.json()["github_ranking_period"]
+    meta_body = meta.json()
+    assert set(meta_body) == {"categories", "github_period"}
+    assert "github_ranking_period" not in meta_body
+    assert meta_body["categories"] == CATEGORIES
+    meta_period = meta_body["github_period"]
+    assert meta_period == period
     assert set(meta_period) == PERIOD_KEYS
     assert meta_period["year_month"] == "2026-11"
     assert meta_period["label_zh"] == "本月至今"
@@ -292,6 +301,111 @@ def test_ask_without_llm(client):
         json={"target_type": "github_repo", "target_id": "gh_missing", "question": "star 是多少？"},
     )
     assert missing_repo.status_code == 404
+
+
+def test_detail_source_object_present_and_null(client):
+    factory = client.app.state.session_factory
+    with factory() as session:
+        kept = session.get(Product, "prd_notion")
+        kept.pricing_value = 10
+        kept.pricing_unit = "USD"
+        kept.pricing_source = " https://www.notion.so/pricing "
+        kept.data_as_of = datetime(2026, 11, 2).date()
+        kept.metrics = [
+            {
+                "key": "seats",
+                "label_zh": "席位",
+                "value": 3,
+                "unit": "个",
+                "source": "https://www.notion.so/pricing",
+            },
+            {
+                "key": "mau",
+                "label_zh": "月活",
+                "value": 100,
+                "unit": "人",
+                "source": "未公开",
+            },
+            {
+                "key": "editors",
+                "label_zh": "编辑者",
+                "value": 5,
+                "unit": "人",
+                "source_name": "公开说明",
+                "source_url": "https://www.notion.so/pricing",
+                "accessed_at": "2026-10-01",
+            },
+        ]
+        missing = session.get(Product, "prd_figma")
+        missing.pricing_value = 12
+        missing.pricing_unit = "USD"
+        missing.pricing_source = None
+        missing.pricing_summary_zh = "价格说明仍保留，但没有可链接的来源。"
+        missing.metrics = [
+            {"key": "seats", "label_zh": "席位", "value": 8, "unit": "个", "source": None},
+            {"key": "blank", "label_zh": "空来源", "value": 1, "unit": "个", "source": "   "},
+            {"key": "scheme", "label_zh": "无协议", "value": 2, "unit": "个", "source": "www.figma.com/pricing"},
+        ]
+        unusable = session.get(Product, "prd_slack")
+        unusable.pricing_value = 0
+        unusable.pricing_unit = "USD"
+        unusable.pricing_source = "ftp://slack.com/pricing"
+        unusable.metrics = [
+            {
+                "key": "plans",
+                "label_zh": "方案",
+                "value": 4,
+                "unit": "档",
+                "source": {"name": "官网定价页", "url": "not a url", "accessed_at": "2026-11-01"},
+            }
+        ]
+        session.commit()
+
+    notion = client.get("/api/v1/products/prd_notion").json()
+    assert notion["pricing"]["value"] == 10
+    assert notion["pricing"]["unit"] == "USD"
+    assert notion["pricing"]["source"] == {
+        "name": "官网定价页",
+        "url": "https://www.notion.so/pricing",
+        "accessed_at": "2026-11-02",
+    }
+    assert notion["metrics"][0] == {
+        "key": "seats",
+        "label_zh": "席位",
+        "value": 3.0,
+        "unit": "个",
+        "source": {
+            "name": None,
+            "url": "https://www.notion.so/pricing",
+            "accessed_at": "2026-11-02",
+        },
+    }
+    assert notion["metrics"][1]["value"] is None
+    assert notion["metrics"][1]["unit"] is None
+    assert notion["metrics"][1]["source"] is None
+    assert notion["metrics"][2]["value"] == 5
+    assert notion["metrics"][2]["source"] == {
+        "name": "公开说明",
+        "url": "https://www.notion.so/pricing",
+        "accessed_at": "2026-10-01",
+    }
+    encoded = client.get("/api/v1/products/prd_notion").content.decode("utf-8")
+    assert '"source":"https://' not in encoded
+    assert '"source":"http://' not in encoded
+
+    figma = client.get("/api/v1/products/prd_figma").json()
+    assert figma["pricing"]["value"] is None
+    assert figma["pricing"]["unit"] is None
+    assert figma["pricing"]["source"] is None
+    assert figma["pricing"]["summary_zh"] == "价格说明仍保留，但没有可链接的来源。"
+    assert [item["source"] for item in figma["metrics"]] == [None, None, None]
+    assert [item["value"] for item in figma["metrics"]] == [None, None, None]
+
+    slack = client.get("/api/v1/products/prd_slack").json()
+    assert slack["pricing"]["value"] is None
+    assert slack["pricing"]["source"] is None
+    assert slack["metrics"][0]["value"] is None
+    assert slack["metrics"][0]["source"] is None
 
 
 def test_seed_is_idempotent(client):
