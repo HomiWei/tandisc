@@ -7,10 +7,12 @@ Rules confirmed 2026-11-16, timezone from settings (default Asia/Shanghai):
   captured before that day's 00:00
 - End snapshot for a finished month: the row dated the last day, else the latest
   snapshot captured before the next month's 00:00
-- Days 1-7 of the current month: default to the previous complete month
-  (is_fallback_previous_month=true, label 上一完整月)
-- From day 8: default to month-start through the latest snapshot. If that window
-  cannot be computed for any repo, fall back to the previous complete month.
+- Days 1-7: use the previous complete month (is_fallback_previous_month=true,
+  label 上一完整月). If that month also has no usable snapshots, items is empty.
+- From day 8 through month end: always use the current month, even when there
+  are no snapshots. is_fallback_previous_month=false, label 本月至今. Do not
+  fall back to the previous month. net_gain is latest snapshot stars minus the
+  month-start snapshot; data_as_of is the latest snapshot date.
 - Never invent net_gain. Repos without a usable pair are omitted. If none remain,
   items is empty and the period explains why.
 """
@@ -29,7 +31,6 @@ from app.domain import (
     METHODOLOGY_ZH,
     NOTE_COMPLETE_ZH,
     NOTE_EARLY_MONTH_ZH,
-    NOTE_FALLBACK_INSUFFICIENT_ZH,
     NOTE_PARTIAL_ZH,
     PARTIAL_LABEL_ZH,
 )
@@ -296,28 +297,13 @@ def resolve_rankings(
         return period, [row.item for row in ranked]
 
     ranked = compute_month_items(repos, snapshots, current, "partial", tz, now)
-    if ranked:
-        period = _build_period(
-            first=current,
-            mode="partial",
-            today=today,
-            tz_name=tz_name,
-            fallback=False,
-            note_zh=NOTE_PARTIAL_ZH,
-            ranked=ranked,
-            snapshots=snapshots,
-        )
-        return period, [row.item for row in ranked]
-
-    first = previous_month(current)
-    ranked = compute_month_items(repos, snapshots, first, "complete", tz, now)
     period = _build_period(
-        first=first,
-        mode="complete",
+        first=current,
+        mode="partial",
         today=today,
         tz_name=tz_name,
-        fallback=True,
-        note_zh=NOTE_FALLBACK_INSUFFICIENT_ZH,
+        fallback=False,
+        note_zh=NOTE_PARTIAL_ZH,
         ranked=ranked,
         snapshots=snapshots,
     )

@@ -131,11 +131,13 @@ def test_monthly_rankings_empty_period_and_meta(client):
     assert body["total"] == 0
     period = body["period"]
     assert set(period) == PERIOD_KEYS
-    assert period["month"] == "2026-10"
-    assert period["is_fallback_previous_month"] is True
-    assert period["label_zh"] == "上一完整月"
+    assert period["month"] == "2026-11"
+    assert period["is_fallback_previous_month"] is False
+    assert period["label_zh"] == "本月至今"
     assert period["methodology_zh"] == METHODOLOGY_ZH
     assert period["data_as_of"] is None
+    assert period["range_start"] == "2026-11-01"
+    assert period["range_end"] == "2026-11-16"
     assert period["empty_reason_zh"]
     assert period["timezone"] == "Asia/Shanghai"
     assert "revenue" not in response.content.decode("utf-8")
@@ -143,7 +145,10 @@ def test_monthly_rankings_empty_period_and_meta(client):
     meta = client.get("/api/v1/meta")
     assert meta.status_code == 200
     assert meta.json()["categories"] == CATEGORIES
-    assert meta.json()["github_ranking_period"]["month"] == "2026-10"
+    meta_period = meta.json()["github_ranking_period"]
+    assert meta_period["month"] == "2026-11"
+    assert meta_period["label_zh"] == "本月至今"
+    assert meta_period["is_fallback_previous_month"] is False
 
     future = client.get("/api/v1/github/monthly-rankings", params={"month": "2026-13"})
     assert future.status_code == 400
@@ -152,6 +157,19 @@ def test_monthly_rankings_empty_period_and_meta(client):
     missing_repo = client.get("/api/v1/github/repos/gh_missing")
     assert missing_repo.status_code == 404
     assert missing_repo.json()["error"]["code"] == "NOT_FOUND"
+
+
+def test_monthly_rankings_days_1_to_7_use_previous_month(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.clock.now",
+        lambda tz: datetime(2026, 11, 7, 12, 0, tzinfo=TZ),
+    )
+    body = client.get("/api/v1/github/monthly-rankings").json()
+    assert body["items"] == []
+    period = body["period"]
+    assert period["month"] == "2026-10"
+    assert period["label_zh"] == "上一完整月"
+    assert period["is_fallback_previous_month"] is True
 
 
 def test_rankings_roundtrip_snapshots_without_inventing_gain(client):

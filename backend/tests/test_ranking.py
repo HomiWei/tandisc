@@ -41,20 +41,35 @@ def repo(repo_id: str, product_id: str | None = None) -> RepoInput:
     )
 
 
-def test_no_snapshots_on_nov_16_falls_back_to_previous_month(monkeypatch):
+def test_no_snapshots_on_nov_16_uses_current_month(monkeypatch):
     today = date(2026, 11, 16)
+    freeze(monkeypatch, today)
+    period, items = resolve_rankings(today=today, repos=[], snapshots=[], tz=TZ, month=None)
+    assert items == []
+    assert period.month == "2026-11"
+    assert period.is_fallback_previous_month is False
+    assert period.label_zh == PARTIAL_LABEL_ZH
+    assert period.label_zh == "本月至今"
+    assert period.data_as_of is None
+    assert period.methodology_zh == METHODOLOGY_ZH
+    assert period.empty_reason_zh == "尚无 star 快照，无法计算净增。"
+    assert period.range_start == date(2026, 11, 1)
+    assert period.range_end == date(2026, 11, 16)
+    assert period.timezone == "Asia/Shanghai"
+
+
+def test_days_1_to_7_with_no_snapshots_use_previous_month(monkeypatch):
+    today = date(2026, 11, 3)
     freeze(monkeypatch, today)
     period, items = resolve_rankings(today=today, repos=[], snapshots=[], tz=TZ, month=None)
     assert items == []
     assert period.month == "2026-10"
     assert period.is_fallback_previous_month is True
     assert period.label_zh == FALLBACK_LABEL_ZH
+    assert period.label_zh == "上一完整月"
     assert period.data_as_of is None
-    assert period.methodology_zh == METHODOLOGY_ZH
-    assert period.empty_reason_zh == "尚无 star 快照，无法计算净增。"
     assert period.range_start == date(2026, 10, 1)
     assert period.range_end == date(2026, 10, 31)
-    assert period.timezone == "Asia/Shanghai"
 
 
 def test_days_1_to_7_use_previous_month_even_when_current_has_snapshots(monkeypatch):
@@ -100,7 +115,7 @@ def test_from_day_8_uses_latest_snapshot_in_the_current_month(monkeypatch):
     assert items[0].product_id == "prd_a"
 
 
-def test_day_8_without_current_snapshots_falls_back(monkeypatch):
+def test_day_8_without_current_snapshots_stays_on_current_month(monkeypatch):
     today = date(2026, 11, 8)
     freeze(monkeypatch, today)
     snapshots = [
@@ -110,10 +125,11 @@ def test_day_8_without_current_snapshots_falls_back(monkeypatch):
     period, items = resolve_rankings(
         today=today, repos=[repo("gh_a")], snapshots=snapshots, tz=TZ, month=None
     )
-    assert period.month == "2026-10"
-    assert period.is_fallback_previous_month is True
-    assert period.label_zh == FALLBACK_LABEL_ZH
-    assert items[0].net_gain == 4
+    assert items == []
+    assert period.month == "2026-11"
+    assert period.is_fallback_previous_month is False
+    assert period.label_zh == PARTIAL_LABEL_ZH
+    assert period.data_as_of is None
 
 
 def test_complete_month_prefers_first_and_last_day(monkeypatch):

@@ -30,6 +30,5 @@ EMPTY_NO_SNAPSHOTS_ZH = "尚无 star 快照，无法计算净增。"
 EMPTY_BOUNDARIES_ZH = "该月份缺少可用的月初与月末 star 快照，无法计算净增。"
 
 NOTE_EARLY_MONTH_ZH = "每月 1 日至 7 日默认展示上一完整自然月，不计算尚未结束的本月净增。"
-NOTE_FALLBACK_INSUFFICIENT_ZH = "本月已过 7 日，但没有足够的 star 快照计算本月净增，因此改为上一完整自然月。"
-NOTE_PARTIAL_ZH = "展示本月 1 日至最新快照的 star 净增。"
+NOTE_PARTIAL_ZH = "展示本月 1 日至最新快照的 star 净增。没有快照时条目为空，不改看上一月。"
 NOTE_COMPLETE_ZH = "展示该自然月月初快照到月末快照的 star 净增。"
